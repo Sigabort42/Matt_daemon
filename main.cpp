@@ -16,8 +16,8 @@ int	kill_daemon(t_env *env)
   close(env->csock);
   unlink("/var/lock/matt_daemon.lock");
   rmdir("/var/lock");
-  unlink("/var/log/matt_daemon/matt_daemon.log");
-  rmdir("/var/log/matt_daemon");
+  //  unlink("/var/log/matt_daemon/matt_daemon.log");
+  //rmdir("/var/log/matt_daemon");
   return (0);
 }
 
@@ -35,7 +35,7 @@ int	main()
 
   signal(SIGINT, handle);
   if (!(access("/var/lock/matt_daemon.lock", F_OK)))
-    std::cout << "Error" << std::endl;
+    std::cout << "Error open file /var/lock/matt_daemon.lock" << std::endl;
   else
     if (!(daemon(&env)))
       {
