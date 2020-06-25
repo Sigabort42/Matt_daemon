@@ -55,7 +55,7 @@ int	main()
   else
     if (!(rd = daemon(&env)))
       {
-	std::cout << "OKOKOK" << std::endl;
+	std::cout << "Hello World [elbenkri]" << std::endl;
 	std::ofstream f("/var/log/matt_daemon/matt_daemon.log");
 	if (f)
 	  {
