@@ -14,7 +14,8 @@
 int			create_env_work(t_env *env)
 {
   if ((mkdir("/var/lock", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
-    return (-1);
+    //return (-2);
+    ;
   if ((mkdir("/var/log/matt_daemon", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
     return (-1);
   if ((creat("/var/lock/matt_daemon.lock", S_IRWXU | S_IRWXG | S_IRWXO)) == -1)
@@ -60,7 +61,7 @@ int			daemon(t_env *env)
 	    env->csock = accept(env->sock, (struct sockaddr*)&csin, &cslen);
 	  else
 	    return (-4);
-	  std::cout << "lololol=>>> " << csin.sin_addr.s_addr << std::endl;
+//	  std::cout << "lololol=>>> " << csin.sin_addr.s_addr << std::endl;
 	  return (0);
 	}
       else

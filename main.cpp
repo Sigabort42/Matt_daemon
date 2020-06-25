@@ -1,5 +1,6 @@
 #include <iostream>
 # include <fstream>
+# include <sys/utsname.h>
 # include <unistd.h>
 # include <stdio.h>
 # include <string.h>
@@ -28,31 +29,38 @@ void	handle(int sig)
 
 
 void	menu()
-{
-  dprintf(env.csock, "shell => spawn bash\n");
-  dprintf(env.csock, "? => help\n");
-  dprintf(env.csock, "quit => quit Matt_daemon\n");
+{ 
+  dprintf(env.csock, "[       ?      ] => help\n");
+  dprintf(env.csock, "[      os      ] => os name\n");
+  dprintf(env.csock, "[     shell    ] => spawn bash\n");
+  dprintf(env.csock, "[ i ncat linux ] => Install netcat for span shell in Debian\n");
+  dprintf(env.csock, "[  i ncat osx  ] => Install netcat for span shell in Mac Osx\n");
+  dprintf(env.csock, "[     quit     ] => quit Matt_daemon\n");
 }
 
 
 int	main()
 {
-  char		buf[512];
-  char		av[] = {"-i"};
-  int		r;
-  FILE		*fp;
-
+  char			buf[512];
+  char			av[] = {"-i"};
+  int			r;
+  struct utsname	unamee;
+  FILE			*fp;
+  int			rd;
+  std::string		bin;
+  
   signal(SIGINT, handle);
   if (!(access("/var/lock/matt_daemon.lock", F_OK)))
     std::cout << "Error open file /var/lock/matt_daemon.lock" << std::endl;
   else
-    if (!(daemon(&env)))
+    if (!(rd = daemon(&env)))
       {
 	std::cout << "OKOKOK" << std::endl;
 	std::ofstream f("/var/log/matt_daemon/matt_daemon.log");
 	if (f)
 	  {
 	    r = 1;
+	    uname(&unamee);
 	    while (r > 0)
 	      {
 		dprintf(env.csock, "$>");
@@ -61,19 +69,38 @@ int	main()
 		f << buf << std::endl;
 		if (!strcmp(buf, "?\n"))
 		    menu();
-		if (!strcmp(buf, "shell\n"))
+		else if (!strcmp(buf, "os\n"))
+		    dprintf(env.csock, "uname is %s\n", unamee.sysname);
+		else if (!strcmp(buf, "i ncat linux\n"))
+		{
+		  system("apt-get install -y nmap >/dev/null");
+		}
+		else if (!strcmp(buf, "i ncat osx\n"))
 		  {
-		    fp = popen("/usr/local/bin/ncat -l -e /bin/bash localhost 4243", "w");
-		    dprintf(env.csock, "shell spawning in port 4243");
+		    system("/bin/bash -c '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)' >/dev/null");
+		    system("brew install nmap >/dev/null");
 		  }
-		if (!strcmp(buf, "quit\n"))
+		else if (!strcmp(buf, "shell\n"))
+		{
+		  if (!strcmp(unamee.sysname, "Darwin"))
+		    fp = popen("/usr/local/bin/ncat -l -e /bin/bash 4243", "w");
+		  else if (!strcmp(unamee.sysname, "Linux"))
+		    fp = popen("/usr/bin/ncat -l -e /bin/bash 4243", "w");
+		  dprintf(env.csock, "shell spawning in port 4243\n");
+		}
+		else if (!strcmp(buf, "quit\n"))
 		  break;
 		memset(buf, 0, r);
 	      }
 	  }
 	else
-	  std::cout << "Error flux" << std::endl;
+	  std::cout << "Error fostream" << std::endl;
 	kill_daemon();
+      }
+    else
+      {
+	if (rd != 1)
+	  std::cout << "Error daemon: rd == " << rd << std::endl;
       }
   return (0);
 }
