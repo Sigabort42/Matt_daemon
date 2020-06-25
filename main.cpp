@@ -9,22 +9,31 @@
 t_env		env;
 
 
-int	kill_daemon(t_env *env)
+int	kill_daemon()
 {
-  close(env->fd_file);
-  close(env->sock);
-  close(env->csock);
+  close(env.fd_file);
+  close(env.sock);
+  close(env.csock);
   unlink("/var/lock/matt_daemon.lock");
   rmdir("/var/lock");
-  //  unlink("/var/log/matt_daemon/matt_daemon.log");
-  //rmdir("/var/log/matt_daemon");
+  unlink("/var/log/matt_daemon/matt_daemon.log");
+  rmdir("/var/log/matt_daemon");
   return (0);
 }
 
 void	handle(int sig)
 {
-  kill_daemon(&env);
+  kill_daemon();
 }
+
+
+void	menu()
+{
+  dprintf(env.csock, "shell => spawn bash\n");
+  dprintf(env.csock, "? => help\n");
+  dprintf(env.csock, "quit => quit Matt_daemon\n");
+}
+
 
 int	main()
 {
@@ -43,14 +52,19 @@ int	main()
 	std::ofstream f("/var/log/matt_daemon/matt_daemon.log");
 	if (f)
 	  {
-	    while ((r = read(env.csock, buf, 512)) > 0)
+	    r = 1;
+	    while (r > 0)
 	      {
+		dprintf(env.csock, "$>");
+		r = read(env.csock, buf, 512);
 		buf[r] = '\0';
 		f << buf << std::endl;
+		if (!strcmp(buf, "?\n"))
+		    menu();
 		if (!strcmp(buf, "shell\n"))
 		  {
-		    std::cout << "ca va venir" << std::endl;
-		    //		fp = popen("/bin/sh -i", "w");
+		    fp = popen("/usr/local/bin/ncat -l -e /bin/bash localhost 4243", "w");
+		    dprintf(env.csock, "shell spawning in port 4243");
 		  }
 		if (!strcmp(buf, "quit\n"))
 		  break;
@@ -59,7 +73,7 @@ int	main()
 	  }
 	else
 	  std::cout << "Error flux" << std::endl;
-	kill_daemon(&env);
+	kill_daemon();
       }
   return (0);
 }
