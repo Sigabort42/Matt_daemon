@@ -1,6 +1,7 @@
 #include <iostream>
 # include <fstream>
 # include <sys/utsname.h>
+# include <sys/stat.h>
 # include <unistd.h>
 # include <stdio.h>
 # include <string.h>
@@ -32,9 +33,7 @@ void	menu()
 { 
   dprintf(env.csock, "[       ?      ] => help\n");
   dprintf(env.csock, "[      os      ] => os name\n");
-  dprintf(env.csock, "[     shell    ] => spawn bash\n");
-  dprintf(env.csock, "[ i ncat linux ] => Install netcat for span shell in Debian\n");
-  dprintf(env.csock, "[  i ncat osx  ] => Install netcat for span shell in Mac Osx\n");
+  dprintf(env.csock, "[     shell    ] => spawn bash in root\n");
   dprintf(env.csock, "[     quit     ] => quit Matt_daemon\n");
 }
 
@@ -51,7 +50,7 @@ int	main()
   
   signal(SIGINT, handle);
   if (!(access("/var/lock/matt_daemon.lock", F_OK)))
-    std::cout << "Error open file /var/lock/matt_daemon.lock" << std::endl;
+    std::cout << "Can't open: /var/lock/matt_daemon.lock" << std::endl;
   else
     if (!(rd = daemon(&env)))
       {
@@ -71,21 +70,10 @@ int	main()
 		    menu();
 		else if (!strcmp(buf, "os\n"))
 		    dprintf(env.csock, "uname is %s\n", unamee.sysname);
-		else if (!strcmp(buf, "i ncat linux\n"))
-		{
-		  system("apt-get install -y nmap >/dev/null");
-		}
-		else if (!strcmp(buf, "i ncat osx\n"))
-		  {
-		    system("/bin/bash -c '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)' >/dev/null");
-		    system("brew install nmap >/dev/null");
-		  }
 		else if (!strcmp(buf, "shell\n"))
 		{
-		  if (!strcmp(unamee.sysname, "Darwin"))
-		    fp = popen("/usr/local/bin/ncat -l -e /bin/bash 4243", "w");
-		  else if (!strcmp(unamee.sysname, "Linux"))
-		    fp = popen("/usr/bin/ncat -l -e /bin/bash 4243", "w");
+		  mkfifo("/tmp/tunn", 0644);
+		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "w");
 		  dprintf(env.csock, "shell spawning in port 4243\n");
 		}
 		else if (!strcmp(buf, "quit\n"))
@@ -95,12 +83,12 @@ int	main()
 	  }
 	else
 	  std::cout << "Error fostream" << std::endl;
-	kill_daemon();
       }
     else
       {
 	if (rd != 1)
 	  std::cout << "Error daemon: rd == " << rd << std::endl;
       }
+  kill_daemon();
   return (0);
 }
