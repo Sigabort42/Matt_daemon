@@ -3,5 +3,6 @@ Un daemon, qui ne se traduit pas par démon, désigne un type de programme infor
 
 - [x] Programme sous la forme de Daemon
 - [x] Connexion sur un port donné via une socket
+- [x] Uname du systeme sur lequelle le Daemon est lancé
 - [x] Possibilité d'activer un remote shell
 - [ ] Chifremment du tunnel de communication
