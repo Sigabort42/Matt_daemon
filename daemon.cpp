@@ -61,7 +61,6 @@ int			daemon(t_env *env)
 	    env->csock = accept(env->sock, (struct sockaddr*)&csin, &cslen);
 	  else
 	    return (-4);
-//	  std::cout << "lololol=>>> " << csin.sin_addr.s_addr << std::endl;
 	  return (0);
 	}
       else
