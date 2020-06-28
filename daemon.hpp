@@ -11,6 +11,16 @@ typedef struct	s_env
   int		csock;
 }		t_env;
 
+
+enum {
+      INFO,
+      LOG,
+      ERROR,
+      FATAL,
+      SIGNAL,
+};
+
+
 int	daemon(t_env *env);
 
 #endif

@@ -7,6 +7,7 @@
 # include <string.h>
 # include <signal.h>
 # include "daemon.hpp"
+# include "Tintin_Reporter.hpp"
 
 t_env		env;
 
@@ -41,21 +42,23 @@ void	menu()
 int	main()
 {
   char			buf[512];
-  char			av[] = {"-i"};
   int			r;
   struct utsname	unamee;
-  FILE			*fp;
   int			rd;
-  std::string		bin;
+  Tintin_Reporter	tr;
+  std::string lol;
   
   signal(SIGINT, handle);
+  tr.setLog("Started");
   if (!(access("/var/lock/matt_daemon.lock", F_OK)))
     std::cout << "Can't open: /var/lock/matt_daemon.lock" << std::endl;
   else
     if (!(rd = daemon(&env)))
       {
-	std::cout << "Hello World [elbenkri]" << std::endl;
+	//	std::cout << "Hello World [elbenkri]" << std::endl;
 	std::ofstream f("/var/log/matt_daemon/matt_daemon.log");
+	f << tr.writeLog(INFO) << std::endl;
+	std::cout << lol << std::endl;
 	if (f)
 	  {
 	    r = 1;

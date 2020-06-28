@@ -6,6 +6,8 @@ CFLAGS	=	-Wall -Wextra -Werror
 
 SRCS	=	daemon.cpp \
 		main.cpp \
+		Tintin_Reporter.cpp \
+
 
 OBJ	=	$(SRCS:.cpp=.o)
 
