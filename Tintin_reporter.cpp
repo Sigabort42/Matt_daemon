@@ -1,5 +1,6 @@
 #include <iostream>
 # include <time.h>
+# include <string>
 # include "daemon.hpp"
 # include "Tintin_Reporter.hpp"
 
@@ -20,25 +21,29 @@ Tintin_Reporter::~Tintin_Reporter(void) {
 }
 
 std::string	Tintin_Reporter::getLog(void) const {
-  //  std::cout << "getLog() Called" << std::endl;
   return this->_log;
 }
 
 void		Tintin_Reporter::setLog(std::string log) {
-  //  std::cout << "setLog() Called" << std::endl;
   this->_log = log;
   return ;
 }
 
 std::string	Tintin_Reporter::writeLog(int type) {
-  //  std::cout << "writeLog() Called" << std::endl;
   std::string	ret;
   std::string	date;
-  time_t	curtime;
-
-  time(&curtime);
-  date = ctime(&curtime);
-  ret = "[" + date.erase(date.size() - 1) + "] - ";
+  time_t	now;
+  tm		*ltm;
+  
+  time(&now);
+  ltm = localtime(&now);
+  date = std::to_string(ltm->tm_mday) + "/"
+    + std::to_string(1 + ltm->tm_mon) + "/"
+    + std::to_string(1900 + ltm->tm_year) + " "
+    + std::to_string(ltm->tm_hour) + ":"
+    + std::to_string(ltm->tm_min) + ":"
+    + std::to_string(ltm->tm_sec);
+  ret = "[" + date + "] - ";
   if (type == ERROR)
     return (ret + "[ERROR]  - " + this->getLog());
   else if (type == INFO)
