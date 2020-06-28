@@ -7,20 +7,20 @@
 # include <string.h>
 # include <signal.h>
 # include "daemon.hpp"
-# include "Tintin_Reporter.hpp"
 
 t_env		env;
 
 
 int	kill_daemon()
 {
+  call_tintin(INFO, "Quit Daemon");
   close(env.fd_file);
   close(env.sock);
   close(env.csock);
+  call_tintin(INFO, "Close Connexion Daemon port 4242");
   unlink("/var/lock/matt_daemon.lock");
   rmdir("/var/lock");
-  unlink("/var/log/matt_daemon/matt_daemon.log");
-  rmdir("/var/log/matt_daemon");
+  call_tintin(INFO, "free file /var/lock/matt_daemon.lock");
   return (0);
 }
 
@@ -28,7 +28,6 @@ void	handle(int sig)
 {
   kill_daemon();
 }
-
 
 void	menu()
 { 
@@ -38,6 +37,11 @@ void	menu()
   dprintf(env.csock, "[     quit     ] => quit Matt_daemon\n");
 }
 
+void	call_tintin(int type, const char *str)
+{
+      env.tr.setLog(str);
+      env.f << env.tr.writeLog(type) << std::endl;
+}
 
 int	main()
 {
@@ -45,53 +49,59 @@ int	main()
   int			r;
   struct utsname	unamee;
   int			rd;
-  Tintin_Reporter	tr;
   std::string lol;
-  
+
   signal(SIGINT, handle);
-  tr.setLog("Started");
-  if (!(access("/var/lock/matt_daemon.lock", F_OK)))
-    std::cout << "Can't open: /var/lock/matt_daemon.lock" << std::endl;
+  if (getuid())
+      std::cout << "Not root" << std::endl;
+  else if (!(access("/var/lock/matt_daemon.lock", F_OK)))
+    {
+      env.f.open("/var/log/matt_daemon/matt_daemon.log", std::fstream::app);
+      call_tintin(FATAL, "Can't open: /var/lock/matt_daemon.lock");
+      std::cout << "Can't open: /var/lock/matt_daemon.lock" << std::endl;
+    }
   else
     if (!(rd = daemon(&env)))
       {
 	//	std::cout << "Hello World [elbenkri]" << std::endl;
-	std::ofstream f("/var/log/matt_daemon/matt_daemon.log");
-	f << tr.writeLog(INFO) << std::endl;
-	std::cout << lol << std::endl;
-	if (f)
+	if (env.f)
 	  {
+	    call_tintin(INFO, "Started Connexion");
 	    r = 1;
 	    uname(&unamee);
 	    while (r > 0)
 	      {
 		dprintf(env.csock, "$>");
 		r = read(env.csock, buf, 512);
-		buf[r] = '\0';
-		f << buf << std::endl;
-		if (!strcmp(buf, "?\n"))
+		buf[r - 1] = '\0';
+		call_tintin(LOG, buf);
+		if (!strcmp(buf, "?"))
 		    menu();
-		else if (!strcmp(buf, "os\n"))
+		else if (!strcmp(buf, "os"))
 		    dprintf(env.csock, "uname is %s\n", unamee.sysname);
-		else if (!strcmp(buf, "shell\n"))
+		else if (!strcmp(buf, "shell"))
 		{
+		  call_tintin(INFO, "Launch Shell on port 4243");
 		  mkfifo("/tmp/tunn", 0644);
 		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "w");
 		  dprintf(env.csock, "shell spawning in port 4243\n");
 		}
-		else if (!strcmp(buf, "quit\n"))
-		  break;
+		else if (!strcmp(buf, "quit"))
+		  {
+		    kill_daemon();
+		    break;
+		  }
 		memset(buf, 0, r);
 	      }
 	  }
 	else
-	  std::cout << "Error fostream" << std::endl;
+	  call_tintin(ERROR, "Error fostream");
       }
     else
       {
 	if (rd != 1)
-	  std::cout << "Error daemon: rd == " << rd << std::endl;
+	  call_tintin(ERROR, "Error create daemon");
+	std::cout << "Error daemon: rd == " << rd << std::endl;
       }
-  kill_daemon();
   return (0);
 }
