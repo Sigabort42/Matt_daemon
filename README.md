@@ -5,4 +5,4 @@ Un daemon, qui ne se traduit pas par démon, désigne un type de programme infor
 - [x] Connexion sur un port donné via une socket
 - [x] Uname du systeme sur lequelle le Daemon est lancé
 - [x] Lancement d'un bind shell
-- [ ] Chifremment du tunnel de communication
+- [ ] Chiffremment du tunnel de communication
