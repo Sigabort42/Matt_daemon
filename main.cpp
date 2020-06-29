@@ -24,9 +24,18 @@ int	kill_daemon()
   return (0);
 }
 
+void	call_tintin(int type, const char *str)
+{
+      env.tr.setLog(str);
+      env.f << env.tr.writeLog(type) << std::endl;
+}
+
 void	handle(int sig)
 {
-  kill_daemon();
+  //  kill_daemon();
+  std::string tmp = "Signal catched: " + std::to_string(sig);
+  const char *buf = tmp.c_str();
+  call_tintin(SIGNAL, buf);
 }
 
 void	menu()
@@ -37,10 +46,39 @@ void	menu()
   dprintf(env.csock, "[     quit     ] => quit Matt_daemon\n");
 }
 
-void	call_tintin(int type, const char *str)
+void	signal()
 {
-      env.tr.setLog(str);
-      env.f << env.tr.writeLog(type) << std::endl;
+  signal(SIGHUP, handle);
+  signal(SIGINT, handle);
+  signal(SIGQUIT, handle);
+  signal(SIGILL, handle);
+  signal(SIGTRAP, handle);
+  signal(SIGABRT, handle);
+  signal(SIGEMT, handle);
+  signal(SIGFPE, handle);
+  //  signal(SIGKILL, handle);
+  signal(SIGBUS, handle);
+  signal(SIGSEGV, handle);
+  signal(SIGSYS, handle);
+  signal(SIGPIPE, handle);
+  signal(SIGALRM, handle);
+  signal(SIGTERM, handle);
+  signal(SIGURG, handle);
+  //  signal(SIGSTOP, handle);
+  signal(SIGTSTP, handle);
+  signal(SIGCONT, handle);
+  signal(SIGCHLD, handle);
+  signal(SIGTTIN, handle);
+  signal(SIGTTOU, handle);
+  signal(SIGIO, handle);
+  signal(SIGXCPU, handle);
+  signal(SIGXFSZ, handle);
+  signal(SIGVTALRM, handle);
+  signal(SIGPROF, handle);
+  signal(SIGWINCH, handle);
+  signal(SIGINFO, handle);
+  signal(SIGUSR1, handle);
+  signal(SIGUSR2, handle);
 }
 
 int	main()
@@ -51,7 +89,7 @@ int	main()
   int			rd;
   std::string lol;
 
-  signal(SIGINT, handle);
+  signal();
   if (getuid())
       std::cout << "Not root" << std::endl;
   else if (!(access("/var/lock/matt_daemon.lock", F_OK)))
@@ -63,7 +101,6 @@ int	main()
   else
     if (!(rd = daemon(&env)))
       {
-	//	std::cout << "Hello World [elbenkri]" << std::endl;
 	if (env.f)
 	  {
 	    call_tintin(INFO, "Started Connexion");
