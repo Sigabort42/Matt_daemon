@@ -1,11 +1,3 @@
-#include <iostream>
-# include <fstream>
-# include <sys/utsname.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <stdio.h>
-# include <string.h>
-# include <signal.h>
 # include "daemon.hpp"
 
 t_env		env;
@@ -85,7 +77,6 @@ int	main()
 {
   char			buf[512];
   int			r;
-  struct utsname	unamee;
   int			rd;
   std::string lol;
 
@@ -105,7 +96,6 @@ int	main()
 	  {
 	    call_tintin(INFO, "Started Connexion");
 	    r = 1;
-	    uname(&unamee);
 	    while (r > 0)
 	      {
 		dprintf(env.csock, "$>");
@@ -115,7 +105,7 @@ int	main()
 		if (!strcmp(buf, "?"))
 		    menu();
 		else if (!strcmp(buf, "os"))
-		    dprintf(env.csock, "uname is %s\n", unamee.sysname);
+		    dprintf(env.csock, "uname is %s\n", env.unamee.sysname);
 		else if (!strcmp(buf, "shell"))
 		{
 		  call_tintin(INFO, "Launch Shell on port 4243");
