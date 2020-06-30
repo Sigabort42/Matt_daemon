@@ -104,6 +104,6 @@ int			daemon(t_env *env)
       return (0);
     }
   if (env->pid)
-    exit(0);  
+    exit(0);
   return (1);
 }
