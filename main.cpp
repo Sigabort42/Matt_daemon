@@ -36,7 +36,14 @@ void	call_tintin(int type, const char *str)
 
 void	handle(int sig)
 {
-  //  kill_daemon();
+  std::string tmp = "Signal catched: " + std::to_string(sig);
+  const char *buf = tmp.c_str();
+  call_tintin(SIGNAL, buf);
+}
+
+void	handle_exit(int sig)
+{
+  kill_daemon();
   std::string tmp = "Signal catched: " + std::to_string(sig);
   const char *buf = tmp.c_str();
   call_tintin(SIGNAL, buf);
@@ -60,17 +67,14 @@ void	signal()
   signal(SIGABRT, handle);
   signal(SIGEMT, handle);
   signal(SIGFPE, handle);
-  //  signal(SIGKILL, handle);
   signal(SIGBUS, handle);
   signal(SIGSEGV, handle);
   signal(SIGSYS, handle);
   signal(SIGPIPE, handle);
   signal(SIGALRM, handle);
-  signal(SIGTERM, handle);
+  signal(SIGTERM, handle_exit);
   signal(SIGURG, handle);
-  //  signal(SIGSTOP, handle);
   signal(SIGTSTP, handle);
-  signal(SIGCONT, handle);
   signal(SIGCHLD, handle);
   signal(SIGTTIN, handle);
   signal(SIGTTOU, handle);
@@ -94,7 +98,7 @@ int	main()
 
   signal();
   if (getuid())
-      std::cout << "Not root" << std::endl;
+      std::cout << "Permission denied: execute as root" << std::endl;
   else if (!(access("/var/lock/matt_daemon.lock", F_OK)))
     {
       env.f.open("/var/log/matt_daemon/matt_daemon.log", std::fstream::app);

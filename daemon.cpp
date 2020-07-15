@@ -98,7 +98,7 @@ int			daemon(t_env *env)
 	  call_tintin(ERROR, "Error Daemonize");
 	  return (-2);
 	}
-      persiste_os(env);
+      //      persiste_os(env);
       call_tintin(INFO, "Daemonize Successful");
       env->csock = accept(env->sock, (struct sockaddr*)&csin, &cslen);
       return (0);
