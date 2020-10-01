@@ -23,7 +23,6 @@ int			create_env_work(t_env *env)
   if ((mkdir("/var/log/matt_daemon", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
     //    return (-1);
     ;
-  env->fd_file = open("/var/log/matt_daemon/matt_daemon.log", O_RDWR | O_APPEND | O_CREAT);
   env->f.open("/var/log/matt_daemon/matt_daemon.log", std::fstream::app);
   return (0);
 }
