@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-# include "daemon.hpp"
+# include "../includes/daemon.hpp"
 
 t_env		env;
 
@@ -51,10 +51,10 @@ void	handle_exit(int sig)
 
 void	menu()
 { 
-  dprintf(env.csock, "[       ?      ] => help\n");
-  dprintf(env.csock, "[      os      ] => os name\n");
-  dprintf(env.csock, "[     shell    ] => spawn bash in root\n");
-  dprintf(env.csock, "[     quit     ] => quit Matt_daemon\n");
+  write(env.csock, "[       ?      ] => help\n", strlen("[       ?      ] => help\n"));
+  write(env.csock, "[      os      ] => os name\n", strlen("[      os      ] => os name\n"));
+  write(env.csock, "[     shell    ] => spawn bash in root\n", strlen("[     shell    ] => spawn bash in root\n"));
+  write(env.csock, "[     quit     ] => quit Matt_daemon\n", strlen("[     quit     ] => quit Matt_daemon\n"));
 }
 
 void	signal()
@@ -94,7 +94,8 @@ int	main()
   char			buf[512];
   int			r;
   int			rd;
-  std::string lol;
+  int			pid;
+  std::string		lol;
 
   signal();
   if (getuid())
@@ -111,12 +112,19 @@ int	main()
 	if (env.f)
 	  {
 	    call_tintin(INFO, "Started Connexion");
+	    while (strcmp(buf, "Saluttoi"))
+	      {
+		write(env.csock, "Password:", 9);
+		r = read(env.csock, buf, 512);
+		buf[r] = '\0';
+		call_tintin(LOG, buf);
+	      }
 	    r = 1;
 	    while (r > 0)
 	      {
 		dprintf(env.csock, "$>");
 		r = read(env.csock, buf, 512);
-		buf[r - 1] = '\0';
+		buf[r] = '\0';
 		call_tintin(LOG, buf);
 		if (!strcmp(buf, "?"))
 		    menu();
@@ -126,13 +134,13 @@ int	main()
 		{
 		  call_tintin(INFO, "Launch Shell on port 4243");
 		  mkfifo("/tmp/tunn", 0644);
-		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "w");
-		  dprintf(env.csock, "shell spawning in port 4243\n");
+		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
+		  write(env.csock, "shell spawning in port 4243\n", strlen("shell spawning in port 4243\n"));
 		}
 		else if (!strcmp(buf, "quit"))
 		  {
 		    kill_daemon();
-		    break;
+		    return (0);
 		  }
 		memset(buf, 0, r);
 	      }
