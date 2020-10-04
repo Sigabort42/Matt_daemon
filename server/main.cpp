@@ -50,11 +50,17 @@ void	handle_exit(int sig)
 }
 
 void	menu()
-{ 
-  write(env.csock, "[       ?      ] => help\n", strlen("[       ?      ] => help\n"));
-  write(env.csock, "[      os      ] => os name\n", strlen("[      os      ] => os name\n"));
-  write(env.csock, "[     shell    ] => spawn bash in root\n", strlen("[     shell    ] => spawn bash in root\n"));
-  write(env.csock, "[     quit     ] => quit Matt_daemon\n", strlen("[     quit     ] => quit Matt_daemon\n"));
+{
+  char	*msg;
+
+  msg = encrypt("\
+[       ?      ] => help\n\
+[      os      ] => os name\n\
+[     shell    ] => spawn bash in root\n\
+[     quit     ] => quit Matt_daemon\n\
+");
+  write(env.csock, msg, ft_strlen(msg));
+  free(msg);
 }
 
 void	signal()
@@ -92,6 +98,7 @@ void	signal()
 int	main()
 {
   char			buf[512];
+  char			*msg;
   int			r;
   int			rd;
   int			pid;
@@ -112,37 +119,45 @@ int	main()
 	if (env.f)
 	  {
 	    call_tintin(INFO, "Started Connexion");
-	    while (strcmp(buf, "Saluttoi"))
+	    while (strcmp(msg, "Saluttoi"))
 	      {
-		write(env.csock, "Password:", 9);
+		msg = encrypt("Password:");
+		write(env.csock, msg, ft_strlen(msg));
 		r = read(env.csock, buf, 512);
 		buf[r] = '\0';
-		call_tintin(LOG, buf);
+		free(msg);
+		msg = decrypt(buf);
+		call_tintin(LOG, msg);
 	      }
 	    r = 1;
 	    while (r > 0)
 	      {
-		dprintf(env.csock, "$>");
+		free(msg);
+		msg = encrypt("$>");
+		write(env.csock, msg, ft_strlen(msg));
 		r = read(env.csock, buf, 512);
 		buf[r] = '\0';
-		call_tintin(LOG, buf);
-		if (!strcmp(buf, "?"))
+		free(msg);
+		msg = decrypt(buf);
+		call_tintin(LOG, msg);
+		if (!strcmp(msg, "?"))
 		    menu();
-		else if (!strcmp(buf, "os"))
+		else if (!strcmp(msg, "os"))
 		    dprintf(env.csock, "uname is %s\n", env.unamee.sysname);
-		else if (!strcmp(buf, "shell"))
+		else if (!strcmp(msg, "shell"))
 		{
 		  call_tintin(INFO, "Launch Shell on port 4243");
 		  mkfifo("/tmp/tunn", 0644);
 		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
 		  write(env.csock, "shell spawning in port 4243\n", strlen("shell spawning in port 4243\n"));
 		}
-		else if (!strcmp(buf, "quit"))
+		else if (!strcmp(msg, "quit"))
 		  {
 		    kill_daemon();
 		    return (0);
 		  }
 		memset(buf, 0, r);
+		//		free(msg);
 	      }
 	  }
 	else
