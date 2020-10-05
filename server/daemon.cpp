@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 # include "../includes/daemon.hpp"
-# define PORT 4242
 
 int			create_env_work(t_env *env)
 {
@@ -20,8 +19,8 @@ int			create_env_work(t_env *env)
   if ((creat("/var/lock/matt_daemon.lock", S_IRWXU | S_IRWXG | S_IRWXO)) == -1)
     return (-1);
   if ((mkdir("/var/log/matt_daemon", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
-    //    return (-1);
     ;
+    //    return (-1);
   env->f.open("/var/log/matt_daemon/matt_daemon.log", std::fstream::app);
   return (0);
 }
@@ -42,26 +41,6 @@ int			create_server()
   bind(sock, (const struct sockaddr*)&sin, sizeof(sin));
   listen(sock, 3);
   return (sock);
-}
-
-int			persiste_os(t_env *env)
-{
-  uname(&env->unamee);
-  if (!(strcmp(env->unamee.sysname, "Darwin")))
-    {
-      if ((persiste_darwin(env)) == 1)
-	call_tintin(ERROR, "File persistence exist");
-      else if ((persiste_darwin(env)) == -1)
-	call_tintin(ERROR, "Not created persistence");
-    }
-  else if (!(strcmp(env->unamee.sysname, "Linux")))
-    {
-      if ((persiste_linux(env)) == 1)
-	call_tintin(ERROR, "File persistence exist");
-      else if ((persiste_linux(env)) == -1)
-	call_tintin(ERROR, "Not created persistence");
-    }
-  return (0);
 }
 
 int			daemon(t_env *env)
@@ -96,12 +75,13 @@ int			daemon(t_env *env)
 	  call_tintin(ERROR, "Error Daemonize");
 	  return (-2);
 	}
-      //      persiste_os(env);
-      call_tintin(INFO, "Daemonize Successful");
       env->csock = accept(env->sock, (struct sockaddr*)&csin, &cslen);
       return (0);
     }
   if (env->pid)
-    exit(0);
+    {
+      call_tintin(INFO, "Daemonize Successful - PID : " + std::to_string(env->pid));
+      exit(0);
+    }
   return (1);
 }

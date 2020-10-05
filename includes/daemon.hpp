@@ -12,6 +12,7 @@
 
 #ifndef DAEMON_HPP
 # define DAEMON_HPP
+# define PORT 4242
 # include <iostream>
 # include <fstream>
 # include <sys/utsname.h>
@@ -50,10 +51,12 @@ enum {
       SIGNAL,
 };
 
-void	call_tintin(int type, const char *str);
-int	create_env_work(t_env *env);
-int	persiste_darwin(t_env *env);
-int	persiste_linux(t_env *env);
-int	daemon(t_env *env);
+void		call_tintin(int type, std::string str);
+std::string	encrypt(std::string buf);
+std::string	decrypt(std::string buf);
+int		create_env_work(t_env *env);
+int		persiste_darwin(t_env *env);
+int		persiste_linux(t_env *env);
+int		daemon(t_env *env);
 
 #endif

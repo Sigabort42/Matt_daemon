@@ -27,10 +27,10 @@ int	create_client(char *host, int port)
     }
   return (sock);
 }
-
 int	main(int ac, char **av)
 {
   char			buf[512];
+  std::string  		msg;
   int			port;
   int			sock;
   int			r;
@@ -42,12 +42,22 @@ int	main(int ac, char **av)
   r = 1;
   while (r > 0)
     {
+      msg.clear();
+      bzero(buf, 512);
       r = read(sock, buf, 512);
       buf[r] = '\0';
-      write(1 ,buf, r);
+      msg = decrypt(buf);
+      write(1 , msg.c_str(), msg.length());
+      bzero(buf, 512);
       r = read(0, buf, 512);
-      buf[r - 1] = '\0';
-      write(sock, buf, r - 1);
+      msg = buf;
+      msg = "\n";
+      if (r > 1)
+	{
+	  buf[r - 1] = '\0';
+	  msg = encrypt(buf);
+	}
+      write(sock, msg.c_str(), msg.length());
       if (!strcmp(buf, "quit"))
 	exit(0);
     }

@@ -14,7 +14,6 @@
 
 t_env		env;
 
-
 int	kill_daemon()
 {
   call_tintin(INFO, "Quit Daemon");
@@ -28,7 +27,7 @@ int	kill_daemon()
   return (0);
 }
 
-void	call_tintin(int type, const char *str)
+void	call_tintin(int type, const std::string str)
 {
       env.tr.setLog(str);
       env.f << env.tr.writeLog(type) << std::endl;
@@ -51,16 +50,14 @@ void	handle_exit(int sig)
 
 void	menu()
 {
-  char	*msg;
+  std::string	msg;
 
-  msg = encrypt("\
+  msg = "\
 [       ?      ] => help\n\
-[      os      ] => os name\n\
 [     shell    ] => spawn bash in root\n\
-[     quit     ] => quit Matt_daemon\n\
-");
-  write(env.csock, msg, ft_strlen(msg));
-  free(msg);
+[     quit     ] => quit Matt_daemon\n";
+  msg = encrypt(msg);
+  write(env.csock, msg.c_str(), msg.length());
 }
 
 void	signal()
@@ -74,9 +71,9 @@ void	signal()
   signal(SIGEMT, handle);
   signal(SIGFPE, handle);
   signal(SIGBUS, handle);
-  signal(SIGSEGV, handle);
+  signal(SIGSEGV, handle_exit);
   signal(SIGSYS, handle);
-  signal(SIGPIPE, handle);
+  signal(SIGPIPE, handle_exit);
   signal(SIGALRM, handle);
   signal(SIGTERM, handle_exit);
   signal(SIGURG, handle);
@@ -98,10 +95,10 @@ void	signal()
 int	main()
 {
   char			buf[512];
-  char			*msg;
   int			r;
   int			rd;
   int			pid;
+  std::string		msg;
   std::string		lol;
 
   signal();
@@ -119,45 +116,61 @@ int	main()
 	if (env.f)
 	  {
 	    call_tintin(INFO, "Started Connexion");
-	    while (strcmp(msg, "Saluttoi"))
+	    while (msg.compare("Saluttoi"))
 	      {
-		msg = encrypt("Password:");
-		write(env.csock, msg, ft_strlen(msg));
+		msg = "Password:";
+		msg = encrypt(msg);
+		write(env.csock, msg.c_str(), msg.length());
 		r = read(env.csock, buf, 512);
-		buf[r] = '\0';
-		free(msg);
-		msg = decrypt(buf);
+		msg = buf;
+		if (r > 0)
+		  {
+		    buf[r] = '\0';
+		    msg = decrypt(buf); 
+		  }
+		if (!msg.compare(""))
+		  {
+		    kill_daemon();
+		    return (0);
+		  }
 		call_tintin(LOG, msg);
 	      }
 	    r = 1;
 	    while (r > 0)
 	      {
-		free(msg);
-		msg = encrypt("$>");
-		write(env.csock, msg, ft_strlen(msg));
+		memset(buf, 0, r);
+		msg = "$>";
+		msg = encrypt(msg);
+		write(env.csock, msg.c_str(), msg.length());
 		r = read(env.csock, buf, 512);
-		buf[r] = '\0';
-		free(msg);
-		msg = decrypt(buf);
-		call_tintin(LOG, msg);
-		if (!strcmp(msg, "?"))
-		    menu();
-		else if (!strcmp(msg, "os"))
-		    dprintf(env.csock, "uname is %s\n", env.unamee.sysname);
-		else if (!strcmp(msg, "shell"))
-		{
-		  call_tintin(INFO, "Launch Shell on port 4243");
-		  mkfifo("/tmp/tunn", 0644);
-		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
-		  write(env.csock, "shell spawning in port 4243\n", strlen("shell spawning in port 4243\n"));
-		}
-		else if (!strcmp(msg, "quit"))
+		msg = buf;
+		if (r > 0)
+		  {
+		    buf[r] = '\0';
+		    msg = decrypt(buf);
+		  }
+		if (!msg.compare(""))
 		  {
 		    kill_daemon();
 		    return (0);
 		  }
-		memset(buf, 0, r);
-		//		free(msg);
+		call_tintin(LOG, msg);
+		if (!msg.compare("?"))
+		    menu();
+		else if (!msg.compare("shell"))
+		{
+		  msg = "shell spawning in port 4243\n";
+		  msg = encrypt(msg);
+		  call_tintin(INFO, "Launch Shell on port 4243");
+		  mkfifo("/tmp/tunn", 0644);
+		  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
+		  write(env.csock, msg.c_str(), msg.length());
+		}
+		else if (!msg.compare("quit"))
+		  {
+		    kill_daemon();
+		    return (0);
+		  }
 	      }
 	  }
 	else
