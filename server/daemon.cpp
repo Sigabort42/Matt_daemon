@@ -14,8 +14,10 @@
 
 int			create_env_work(t_env *env)
 {
+  errno = 0;
   if ((mkdir("/var/lock", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
-    return (-2);
+      if (errno != EEXIST)
+	return (-2);
   if ((creat("/var/lock/matt_daemon.lock", S_IRWXU | S_IRWXG | S_IRWXO)) == -1)
     return (-1);
   if ((mkdir("/var/log/matt_daemon", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)

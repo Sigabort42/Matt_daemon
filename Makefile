@@ -21,7 +21,6 @@ CFLAGS		=	-Wall -Wextra -Werror
 SRCS		=	server/daemon.cpp \
 			server/main.cpp \
 			server/Tintin_Reporter.cpp \
-			server/persiste.cpp \
 			client/encrypt.cpp \
 
 SRCS_CLIENT	=	client/main.cpp \

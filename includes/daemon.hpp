@@ -27,6 +27,7 @@
 # include <stdio.h>
 # include <string.h>
 # include <signal.h>
+# include <errno.h>
 # include "Tintin_Reporter.hpp"
 
 struct t_env

@@ -68,7 +68,7 @@ void	signal()
   signal(SIGILL, handle);
   signal(SIGTRAP, handle);
   signal(SIGABRT, handle);
-  signal(SIGEMT, handle);
+  signal(SIGIOT, handle);
   signal(SIGFPE, handle);
   signal(SIGBUS, handle);
   signal(SIGSEGV, handle_exit);
@@ -87,7 +87,7 @@ void	signal()
   signal(SIGVTALRM, handle);
   signal(SIGPROF, handle);
   signal(SIGWINCH, handle);
-  signal(SIGINFO, handle);
+  signal(SIGIO, handle);
   signal(SIGUSR1, handle);
   signal(SIGUSR2, handle);
 }
