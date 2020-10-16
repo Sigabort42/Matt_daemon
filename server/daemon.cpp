@@ -21,8 +21,8 @@ int			create_env_work(t_env *env)
   if ((creat("/var/lock/matt_daemon.lock", S_IRWXU | S_IRWXG | S_IRWXO)) == -1)
     return (-1);
   if ((mkdir("/var/log/matt_daemon", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) == -1)
-    ;
-    //    return (-1);
+    if (errno != EEXIST)
+	return (-1);
   env->f.open("/var/log/matt_daemon/matt_daemon.log", std::fstream::app);
   return (0);
 }
@@ -40,17 +40,17 @@ int			create_server()
   sin.sin_family = AF_INET;
   sin.sin_port = htons(PORT);
   sin.sin_addr.s_addr = htonl(INADDR_ANY);
-  bind(sock, (const struct sockaddr*)&sin, sizeof(sin));
-  listen(sock, 3);
+  if (bind(sock, (const struct sockaddr*)&sin, sizeof(sin)) < 0)
+    {
+      perror("bind");
+      exit(10);
+    }
+  listen(sock, 1);
   return (sock);
 }
 
 int			daemon(t_env *env)
 {
-  struct sockaddr_in	csin;
-  unsigned int		cslen;
-
-
   call_tintin(INFO, "Started");
   if ((create_env_work(env)))
     {
@@ -77,7 +77,6 @@ int			daemon(t_env *env)
 	  call_tintin(ERROR, "Error Daemonize");
 	  return (-2);
 	}
-      env->csock = accept(env->sock, (struct sockaddr*)&csin, &cslen);
       return (0);
     }
   if (env->pid)

@@ -52,8 +52,10 @@ int	main(int ac, char **av)
   port = atoi(av[2]);
   sock = create_client(av[1], port);
   r = 1;
+  msg = "\n";
   while (r > 0)
     {
+      write(sock, msg.c_str(), msg.length());
       msg.clear();
       bzero(buf, 512);
       r = read(sock, buf, 512);
@@ -62,14 +64,11 @@ int	main(int ac, char **av)
       write(1 , msg.c_str(), msg.length());
       bzero(buf, 512);
       r = read(0, buf, 512);
-      msg = buf;
-      msg = "\n";
       if (r > 1)
 	{
 	  buf[r - 1] = '\0';
 	  msg = encrypt(buf);
 	}
-      write(sock, msg.c_str(), msg.length());
       if (!strcmp(buf, "quit"))
 	exit(0);
     }

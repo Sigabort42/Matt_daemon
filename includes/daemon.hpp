@@ -13,6 +13,7 @@
 #ifndef DAEMON_HPP
 # define DAEMON_HPP
 # define PORT 4242
+# define MAX_CLIENTS 3
 # include <iostream>
 # include <fstream>
 # include <sys/utsname.h>
@@ -38,6 +39,8 @@ struct t_env
   int			fd_file;
   int			sock;
   int			csock;
+  int			nfds;
+  int			is_connect;
   struct utsname        unamee;
   std::fstream		f;
   Tintin_Reporter	tr;
@@ -53,11 +56,13 @@ enum {
 };
 
 void		call_tintin(int type, std::string str);
+void		search_i_in_csock();
 std::string	encrypt(std::string buf);
 std::string	decrypt(std::string buf);
 int		create_env_work(t_env *env);
 int		persiste_darwin(t_env *env);
 int		persiste_linux(t_env *env);
 int		daemon(t_env *env);
-
+int		kill_daemon(int i);
+int		prompt(std::string msg, int r, char *buf);
 #endif
