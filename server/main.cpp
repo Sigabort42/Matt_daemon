@@ -19,24 +19,26 @@ fd_set		active_fd;
 
 void	auth(std::string msg, int r, char *buf)
 {
-  call_tintin(INFO, "Started Connexion");
+
   call_tintin(INFO, "Connect Authentification");
-  r = read(env.csock, buf, 512);
+  r = read(env.csock[env.i].sock, buf, 512);
   msg = buf;
   if (r > 0)
     {
       buf[r] = '\0';
       msg = decrypt(buf);
-    }
-  call_tintin(LOG, msg);
-  if (!msg.compare("Saluttoi"))
-    {
-      env.is_connect = 1;
-      return ;
+      msg.erase(msg.size() - 1);
+      call_tintin(LOG, msg.c_str());
+      if (!msg.compare("Saluttoi"))
+	{
+	  call_tintin(INFO, "Started Connexion");
+	  env.csock[env.i].is_connect = 1;
+	  return ;
+	}
     }
   msg = "Password:";
   msg = encrypt(msg);
-  write(env.csock, msg.c_str(), msg.length());
+  write(env.csock[env.i].sock, msg.c_str(), msg.length());
 }
 
 int	kill_daemon()
@@ -44,8 +46,9 @@ int	kill_daemon()
   call_tintin(INFO, "Quit Daemon");
   close(env.fd_file);
   close(env.sock);
-  close(env.csock);
-  FD_CLR(env.csock, &active_fd);
+  close(env.csock[env.i].sock);
+  env.csock[env.i].is_connect = 0;
+  FD_CLR(env.csock[env.i].sock, &active_fd);
   call_tintin(INFO, "Close Connexion Daemon port 4242");
   unlink("/var/lock/matt_daemon.lock");
   rmdir("/var/lock");
@@ -82,9 +85,9 @@ void	menu()
   msg = "\
 [       ?      ] => help\n\
 [     shell    ] => spawn bash in root\n\
-[     quit     ] => quit Matt_daemon\n";
+[     quit     ] => quit Matt_daemon\n$>";
   msg = encrypt(msg);
-  write(env.csock, msg.c_str(), msg.length());
+  write(env.csock[env.i].sock, msg.c_str(), msg.length());
 }
 
 void	signal()
@@ -121,88 +124,103 @@ void	signal()
 
 int			listen_multi_sock()
 {
-  std::string		msg;
-  
   read_fd = active_fd;
-  if (select(FD_SETSIZE, &read_fd, &write_fd, NULL, NULL) < 0)
+  if (select(FD_SETSIZE, &read_fd, NULL, NULL, NULL) < 0)
     {
       perror("select");
       exit(5);
     }
   search_i_in_csock();
-  return (env.csock);
+  return (env.csock[env.i].sock);
 }
 
 void			search_i_in_csock()
 {
   unsigned int          cslen;
-  int			r;
   struct sockaddr_in    csin;
   std::string		msg;
   char			buf[512];
+  int			r;
   
-  env.csock = 0;
-  r = 1;
-  while (env.csock < FD_SETSIZE)
+  env.i = 0;
+  while (env.i < MAX_CLIENTS)
     {
-      if (FD_ISSET(env.csock, &read_fd))
+      while (env.csock[env.i].sock < FD_SETSIZE)
 	{
-	  if (env.csock == env.sock)
+	  if (FD_ISSET(env.csock[env.i].sock, &read_fd))
 	    {
-	      env.nfds = accept(env.sock, (struct sockaddr*)&csin, &cslen);
-	      if (env.nfds < 0)
+	      if (env.csock[env.i].sock == env.sock)
 		{
-		  perror("accept");
-		  exit(5);
+		  env.nfds = accept(env.sock, (struct sockaddr*)&csin, &cslen);
+		  if (env.nfds < 0)
+		    {
+		      perror("accept");
+		      exit(5);
+		    }
+		  env.csock[env.i].is_connect = 0;
+		  dprintf(1, "ndfs:%d i:%d sock:%d is_connect:%d\n", env.nfds, env.i, env.csock[env.i].sock, env.csock[env.i].is_connect);
+		  FD_SET(env.nfds, &active_fd);
+		  return ;
 		}
-	      env.is_connect = 0;
-	      dprintf(1, "ndfss %d\n", env.nfds);
-	      FD_SET(env.nfds, &active_fd);
+	      else
+		{
+		  if (env.csock[env.i].is_connect)
+		    prompt(msg, r, buf);
+		  else
+		    auth(msg, r, buf);
+		  return ;
+		}
 	    }
-	  else
+	  env.csock[env.i].sock++;
+	}
+      env.i++;
+    }
+  /*  if (env.i >= MAX_CLIENTS && FD_ISSET(env.csock[env.i].sock, &read_fd))
+    {
+      if (env.csock[env.i].sock == env.sock)
+	{
+	  if (env.i >= MAX_CLIENTS)
 	    {
-	      msg.clear();
-	      prompt(msg, r, buf);
+	      call_tintin(ERROR, "Clients max connected");
+	      close(env.csock[env.i].sock);
 	    }
 	}
-      env.csock++;
-    }
+	}*/
 }
 
 int	prompt(std::string msg, int r, char *buf)
 {
-  if (!env.is_connect)
-    auth(msg, r, buf);
+  msg.clear();
+  r = read(env.csock[env.i].sock, buf, 512);
+  msg = buf;
+  if (r > 0)
+    {
+      buf[r - 1] = '\0';
+      msg = decrypt(buf);
+    }
+  call_tintin(LOG, msg);
+  if (!msg.compare("?"))
+    menu();
+  else if (!msg.compare("shell"))
+    {
+      msg = "shell spawning in port 4243\n$>";
+      msg = encrypt(msg);
+      call_tintin(INFO, "Launch Shell on port 4243");
+      mkfifo("/tmp/tunn", 0644);
+      popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
+      write(env.csock[env.i].sock, msg.c_str(), msg.length());
+    }
+  else if (!msg.compare("quit"))
+    {
+      kill_daemon();
+      return (1);
+    }
   else
     {
       memset(buf, 0, r);
       msg = "$>";
       msg = encrypt(msg);
-      write(env.csock, msg.c_str(), msg.length());
-      r = read(env.csock, buf, 512);
-      msg = buf;
-      if (r > 0)
-	{
-	  buf[r] = '\0';
-	  msg = decrypt(buf);
-	}
-      call_tintin(LOG, msg);
-      if (!msg.compare("?"))
-	menu();
-      else if (!msg.compare("shell"))
-	{
-	  msg = "shell spawning in port 4243\n";
-	  msg = encrypt(msg);
-	  call_tintin(INFO, "Launch Shell on port 4243");
-	  mkfifo("/tmp/tunn", 0644);
-	  popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
-	  write(env.csock, msg.c_str(), msg.length());
-	}
-      else if (!msg.compare("quit"))
-	{
-	  kill_daemon();
-	  return (1);
-	}      
+      write(env.csock[env.i].sock, msg.c_str(), msg.length());
     }
   return (0);
 }
@@ -230,7 +248,9 @@ int	main()
 	  {
 	    FD_ZERO(&active_fd);
 	    FD_SET(env.sock, &active_fd);
-	    env.csock = -1;
+	    env.csock[0].sock = 0;
+	    env.csock[1].sock = 0;
+	    env.csock[2].sock = 0;
 	    while (1)
 		listen_multi_sock();
 	  }

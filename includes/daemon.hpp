@@ -16,6 +16,7 @@
 # define MAX_CLIENTS 3
 # include <iostream>
 # include <fstream>
+# include <thread>
 # include <sys/utsname.h>
 # include <sys/stat.h>
 # include <sys/socket.h>
@@ -31,18 +32,25 @@
 # include <errno.h>
 # include "Tintin_Reporter.hpp"
 
-struct t_env
+struct			t_sock
+{
+  int			sock;
+  int			is_connect;
+};
+
+struct			t_env
 {
   pid_t			ppid;
   pid_t			pid;
   pid_t			sid;
   int			fd_file;
   int			sock;
-  int			csock;
+  t_sock		csock[MAX_CLIENTS];
   int			nfds;
-  int			is_connect;
+  int			i;
   struct utsname        unamee;
   std::fstream		f;
+  std::thread           *tab_thread[MAX_CLIENTS];
   Tintin_Reporter	tr;
 };
 
@@ -63,6 +71,6 @@ int		create_env_work(t_env *env);
 int		persiste_darwin(t_env *env);
 int		persiste_linux(t_env *env);
 int		daemon(t_env *env);
-int		kill_daemon(int i);
+int		kill_daemon();
 int		prompt(std::string msg, int r, char *buf);
 #endif

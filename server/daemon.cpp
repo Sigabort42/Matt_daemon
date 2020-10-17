@@ -43,6 +43,7 @@ int			create_server()
   if (bind(sock, (const struct sockaddr*)&sin, sizeof(sin)) < 0)
     {
       perror("bind");
+      kill_daemon();
       exit(10);
     }
   listen(sock, 1);

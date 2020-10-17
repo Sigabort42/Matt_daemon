@@ -39,21 +39,11 @@ int	create_client(char *host, int port)
     }
   return (sock);
 }
-int	main(int ac, char **av)
-{
-  char			buf[512];
-  std::string  		msg;
-  int			port;
-  int			sock;
-  int			r;
 
-  if (ac < 3)
-    usage();
-  port = atoi(av[2]);
-  sock = create_client(av[1], port);
-  r = 1;
+void	auth(int sock, char *buf, std::string msg, int r)
+{
   msg = "\n";
-  while (r > 0)
+  while (1)
     {
       write(sock, msg.c_str(), msg.length());
       msg.clear();
@@ -66,12 +56,59 @@ int	main(int ac, char **av)
       r = read(0, buf, 512);
       if (r > 1)
 	{
-	  buf[r - 1] = '\0';
+	  buf[r] = '\0';
+	  msg = encrypt(buf);
+	  if (!strcmp(buf, "Saluttoi\n"))
+	    {
+	      write(sock, msg.c_str(), msg.length());
+	      return ;
+	    }
+	  if (!strcmp(buf, "quit\n"))
+	    exit(0);
+	}
+    }  
+}
+
+void	comm(int sock, char *buf, std::string msg, int r)
+{
+  sleep(1);
+  msg = "\n";
+  while (1)
+    {
+      write(sock, msg.c_str(), msg.length());
+      msg.clear();
+      bzero(buf, 512);
+      r = read(sock, buf, 512);
+      buf[r] = '\0';
+      msg = decrypt(buf);
+      write(1 , msg.c_str(), msg.length());
+      bzero(buf, 512);
+      r = read(0, buf, 512);
+      if (r > 1)
+	{
+	  buf[r] = '\0';
+	  if (!strcmp(buf, "quit"))
+	    exit(0);
 	  msg = encrypt(buf);
 	}
-      if (!strcmp(buf, "quit"))
-	exit(0);
-    }
+    }  
+}
+
+int	main(int ac, char **av)
+{
+  char			buf[512];
+  std::string  		msg;
+  int			port;
+  int			sock;
+  int			r;
   
+  if (ac < 3)
+    usage();
+  port = atoi(av[2]);
+  sock = create_client(av[1], port);
+  r = 1;
+  auth(sock, buf, msg, r);
+  printf("Conncted\n");
+  comm(sock, buf, msg, r);
   return (0);
 }
