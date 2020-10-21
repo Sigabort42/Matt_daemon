@@ -45,12 +45,12 @@ struct			t_env
   pid_t			sid;
   int			fd_file;
   int			sock;
-  t_sock		csock[MAX_CLIENTS];
   int			nfds;
   int			i;
+  int			total_client;
+  t_sock		csock[MAX_CLIENTS];
   struct utsname        unamee;
   std::fstream		f;
-  std::thread           *tab_thread[MAX_CLIENTS];
   Tintin_Reporter	tr;
 };
 
@@ -64,7 +64,7 @@ enum {
 };
 
 void		call_tintin(int type, std::string str);
-void		search_i_in_csock();
+void		search_i_in_csock(std::string, int r, char *buf);
 std::string	encrypt(std::string buf);
 std::string	decrypt(std::string buf);
 int		create_env_work(t_env *env);

@@ -22,6 +22,22 @@ void	auth(std::string msg, int r, char *buf)
 
   call_tintin(INFO, "Connect Authentification");
   r = read(env.csock[env.i].sock, buf, 512);
+  if (r <= 0)
+    {
+      if (r < 0)
+	call_tintin(FATAL, "read prompt");
+      else
+	{
+	  close(env.csock[env.i].sock);
+	  env.csock[env.i].is_connect = 0;
+	  FD_CLR(env.csock[env.i].sock, &active_fd);
+	  env.total_client--;
+	  if (env.total_client <= 0)
+	    kill_daemon();
+	}
+      return ;
+    }
+
   msg = buf;
   if (r > 0)
     {
@@ -43,11 +59,13 @@ void	auth(std::string msg, int r, char *buf)
 
 int	kill_daemon()
 {
+  if (env.total_client >= 1)
+    {
+      call_tintin(INFO, "Connexion close");
+      return (0);
+    }
   call_tintin(INFO, "Quit Daemon");
   close(env.fd_file);
-  close(env.csock[env.i].sock);
-  env.csock[env.i].is_connect = 0;
-  FD_CLR(env.csock[env.i].sock, &active_fd);
   close(env.sock);
   call_tintin(INFO, "Close Connexion Daemon port 4242");
   unlink("/var/lock/matt_daemon.lock");
@@ -65,8 +83,7 @@ void	call_tintin(int type, const std::string str)
 void	handle(int sig)
 {
   std::string tmp = "Signal catched: " + std::to_string(sig);
-  const char *buf = tmp.c_str();
-  call_tintin(SIGNAL, buf);
+  call_tintin(SIGNAL, tmp.c_str());
 }
 
 void	handle_exit(int sig)
@@ -124,74 +141,89 @@ void	signal()
 
 int			listen_multi_sock()
 {
-  read_fd = active_fd;
-  if (select(FD_SETSIZE, &read_fd, NULL, NULL, NULL) < 0)
-    {
-      perror("select");
-      exit(5);
-    }
-  search_i_in_csock();
-  return (env.csock[env.i].sock);
-}
-
-void			search_i_in_csock()
-{
-  unsigned int          cslen;
-  struct sockaddr_in    csin;
   std::string		msg;
   char			buf[512];
   int			r;
   
-  env.i = 0;
-  while (env.i < MAX_CLIENTS)
+  read_fd = active_fd;
+  if (select(FD_SETSIZE, &read_fd, NULL, NULL, NULL) < 0)
     {
-      while (env.csock[env.i].sock < FD_SETSIZE)
+      call_tintin(FATAL, "select");
+      exit(5);
+    }
+  search_i_in_csock(msg, r, buf);
+  return (env.csock[env.i].sock);
+}
+
+void			search_i_in_csock(std::string msg, int r, char *buf)
+{
+  unsigned int          cslen;
+  struct sockaddr_in    csin;
+  int			i;
+  int			closefd;
+  
+  env.i = 0;
+  i = 0;
+  while (i < FD_SETSIZE)
+    {
+      if (FD_ISSET(i, &read_fd))
 	{
-	  if (FD_ISSET(env.csock[env.i].sock, &read_fd))
+	  if (i == env.sock)
 	    {
-	      if (env.csock[env.i].sock == env.sock)
+	      if (env.total_client >= MAX_CLIENTS)
 		{
-		  env.nfds = accept(env.sock, (struct sockaddr*)&csin, &cslen);
-		  if (env.nfds < 0)
-		    {
-		      perror("accept");
-		      exit(5);
-		    }
-		  env.csock[env.i].is_connect = 0;
-		  dprintf(1, "ndfs:%d i:%d sock:%d is_connect:%d\n", env.nfds, env.i, env.csock[env.i].sock, env.csock[env.i].is_connect);
-		  FD_SET(env.nfds, &active_fd);
-		  return ;
+		  closefd  = accept(env.sock, (struct sockaddr*)&csin, &cslen);
+		  close(closefd);
+		  return ; 
 		}
-	      else
+	      env.nfds = accept(env.sock, (struct sockaddr*)&csin, &cslen);
+	      if (env.nfds < 0)
+		{
+		  call_tintin(FATAL, "accept");
+		  exit(5);
+		}
+	      env.csock[env.total_client].is_connect = 0;
+	      env.csock[env.total_client].sock = env.nfds;
+	      FD_SET(env.nfds, &active_fd);
+	      env.total_client++;
+	    }
+	  else
+	    {
+	      while (env.i < MAX_CLIENTS && env.csock[env.i].sock != i)
+		env.i++;
+	      if (i == env.csock[env.i].sock)
 		{
 		  if (env.csock[env.i].is_connect)
 		    prompt(msg, r, buf);
 		  else
 		    auth(msg, r, buf);
-		  return ;
 		}
 	    }
-	  env.csock[env.i].sock++;
 	}
-      env.i++;
+      i++;
     }
-  /*  if (env.i >= MAX_CLIENTS && FD_ISSET(env.csock[env.i].sock, &read_fd))
-    {
-      if (env.csock[env.i].sock == env.sock)
-	{
-	  if (env.i >= MAX_CLIENTS)
-	    {
-	      call_tintin(ERROR, "Clients max connected");
-	      close(env.csock[env.i].sock);
-	    }
-	}
-	}*/
 }
 
 int	prompt(std::string msg, int r, char *buf)
 {
   msg.clear();
   r = read(env.csock[env.i].sock, buf, 512);
+  if (r <= 0)
+    {
+      if (r < 0)
+	call_tintin(FATAL, "read prompt");
+      else
+	{
+	  dprintf(1, "close clientt %d\n", env.total_client);
+	  close(env.csock[env.i].sock);
+	  env.csock[env.i].is_connect = 0;
+	  FD_CLR(env.csock[env.i].sock, &active_fd);
+	  env.total_client--;
+	  if (env.total_client <= 0)
+	    kill_daemon();
+	}
+      return (1);
+    }
   msg = buf;
   if (r > 0)
     {
@@ -248,9 +280,10 @@ int	main()
 	  {
 	    FD_ZERO(&active_fd);
 	    FD_SET(env.sock, &active_fd);
-	    env.csock[0].sock = 0;
-	    env.csock[1].sock = 0;
-	    env.csock[2].sock = 0;
+	    env.csock[0].sock = -1;
+	    env.csock[1].sock = -1;
+	    env.csock[2].sock = -1;
+	    env.total_client = 0;
 	    while (1)
 		listen_multi_sock();
 	  }
