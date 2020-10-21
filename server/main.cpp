@@ -45,10 +45,10 @@ int	kill_daemon()
 {
   call_tintin(INFO, "Quit Daemon");
   close(env.fd_file);
-  close(env.sock);
   close(env.csock[env.i].sock);
   env.csock[env.i].is_connect = 0;
   FD_CLR(env.csock[env.i].sock, &active_fd);
+  close(env.sock);
   call_tintin(INFO, "Close Connexion Daemon port 4242");
   unlink("/var/lock/matt_daemon.lock");
   rmdir("/var/lock");
